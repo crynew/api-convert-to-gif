@@ -19,7 +19,7 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     cb(null, `${Date.now()}-${file.originalname}`);
-  }
+  },
 });
 
 const upload = multer({ storage: storage });
@@ -30,7 +30,7 @@ app.post('/convert-to-gif', upload.single('video'), (req: Request, res: Response
     return;
   }
 
-  console.log("Recebi o vídeo!");
+  console.log('Recebi o vídeo!');
 
   const videoPath = path.resolve(uploadDirectory, req.file.filename);
   const gifPath = path.resolve(uploadDirectory, `${req.file.filename}.gif`);
@@ -38,10 +38,16 @@ app.post('/convert-to-gif', upload.single('video'), (req: Request, res: Response
   ffmpeg(videoPath)
     .setStartTime('00:00:05')
     .setDuration(5)
+    .outputOptions([
+      '-ss 0',
+      '-t 5',
+      '-filter_complex',
+      '[0:v] fps=15,scale=300:-1,split [a][b];[a] palettegen [p];[b][p] paletteuse',
+    ])
     .output(gifPath)
     .on('end', () => {
       console.log('Conversão concluída.');
-      res.sendFile(gifPath, (err) => {
+      res.sendFile(gifPath, err => {
         if (err) {
           console.error('Erro ao enviar o GIF:', err);
           return res.status(500).json({ message: 'Erro ao enviar o arquivo GIF.' });
